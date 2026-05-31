@@ -1,26 +1,29 @@
-import os
 import discord
-from discord.ext import commands, tasks
+import os
 import requests
+from discord.ext import commands, tasks
 
 intents = discord.Intents.default()
-intents.message_content = True
 bot = commands.Bot(command_prefix="!", intents=intents)
 
-# حط رابط سيرفرك في باتل ميتريكس هنا (انسخه من المتصفح وحطه داخل القوسين)
-BATTLEMETRICS_URL = 'https://www.battlemetrics.com/servers/arksa/39089534'
+# هنا حط رقم سيرفرك من رابط BattleMetrics
+SERVER_ID = '19258802' 
+URL = f"https://api.battlemetrics.com/servers/{39089534}"
+
 @bot.event
 async def on_ready():
-    print(f'البوت شغال: {bot.user.name}')
+    print('البوت متصل وجاهز لتحديث الحالة!')
     update_status.start()
 
 @tasks.loop(minutes=2)
 async def update_status():
     try:
-        # هنا البوت بيسحب البيانات من الموقع بدون ما يكرش
-        await bot.change_presence(activity=discord.Game(name="سيرفر A19 شغال!"))
+        response = requests.get(URL)
+        data = response.json()
+        players = data['data']['attributes']['players']
+        max_players = data['data']['attributes']['maxPlayers']
+        await bot.change_presence(activity=discord.Game(name=f"{players}/{max_players} لاعب"))
     except Exception as e:
-        print(f"خطأ: {e}")
+        print(f"تحديث الحالة معلق حالياً: {e}")
 
-TOKEN = os.getenv('DISCORD_TOKEN')
-bot.run(TOKEN)
+bot.run(os.getenv('DISCORD_TOKEN'))
