@@ -1,42 +1,72 @@
 import os
 import discord
-from discord.ext import tasks, commands
-import requests
+from discord.ext import tasks
+import valve.source.a2s
 
-# قراءة توكن الديسكورد بأمان
-TOKEN = os.getenv('MTUxMDQ1NTU0ODc1NDI2NDE1NQ.GRX_1A.lwR7hXU1FRs9E93aGXpS0nAb10EfiCJTlZfMr0')
-
-# ضع الـ IP الخاص بسيرفرك هنا بين الفاصلتين
-SERVER_IP = "31.214.216.41:5560"
-# ضع بورت الاستعلام (Query Port) الخاص بالسيرفر هنا (يكون غالباً رقم مكون من 5 أرقام)
-SERVER_PORT = "21" 
+# جلب المتغيرات من Railway
+TOKEN = os.getenv('DISCORD_TOKEN')
+SERVER_IP = os.getenv('SERVER_IP')
+SERVER_PORT = int(os.getenv('SERVER_PORT'))  # البورت يجب أن يكون رقماً
+CHANNEL_ID = int(os.getenv('CHANNEL_ID'))
 
 intents = discord.Intents.default()
-intents.message_content = True
-bot = commands.Bot(command_prefix="!", intents=intents)
+bot = discord.Client(intents=intents)
+
+message_id = None
 
 @bot.event
 async def on_ready():
-    print(f'تم تشغيل بوت A19 ASA بنجاح!')
-    update_status.start()
+    print(f'تم تشغيل بوت {bot.user.name} بنجاح!')
+    update_server_status.start()
 
-@tasks.loop(minutes=3) # يتأكد من حالة السيرفر كل 3 دقائق
-async def update_status():
-    # استخدام موقع خارجي مجاني ومفتوح لفحص سيرفرات ارك عن طريق الـ IP دون الحاجة لتوكن
-    url = f"https://api.gamedig.github.io/v1/query?type=arksa&host={SERVER_IP}&port={SERVER_PORT}"
-    
+@tasks.loop(minutes=3)
+async def update_server_status():
+    global message_id
+    channel = bot.get_channel(CHANNEL_ID)
+    if not channel:
+        print("القناة غير موجودة، تأكد من CHANNEL_ID")
+        return
+
+    # إنشاء الـ Embed بالتنسيق الاحترافي مثل الصورة
+    embed = discord.Embed(
+        title="A19 ASA Server Status",
+        description="حالة السيرفر المباشرة وتفاصيل التشغيل",
+        color=discord.Color.green()
+    )
+
     try:
-        response = requests.get(url).json()
-        if 'error' not in response:
-            players = len(response.get('players', []))
-            max_players = response.get('maxplayers', 50)
-            
-            # تحديث حالة البوت الجانبية في الديسكورد باللاعبين
-            await bot.change_presence(activity=discord.Game(name=f"اللاعبين: {players}/{max_players}"))
-            print(f"السيرفر متصل | اللاعبين: {players}/{max_players}")
-        else:
-            await bot.change_presence(activity=discord.Game(name="السيرفر مغلق 🔴"))
+        # الاتصال المباشر بالسيرفر عبر الآيبي والبورت لجلب البيانات
+        with valve.source.a2s.ServerQuerier((SERVER_IP, SERVER_PORT)) as querier:
+            info = querier.info()
+            players = info["players"]
+            max_players = info["max_players"]
+            server_name = info["server_name"]
+
+            embed.add_field(name="🔹 حالة السيرفر", value="```🟢 متصل```", inline=False)
+            embed.add_field(name="👥 عدد اللاعبين", value=f"``` {players} / {max_players} ```", inline=False)
+            embed.add_field(name="📍 اسم السيرفر", value=f"``` {server_name} ```", inline=False)
+            embed.set_footer(text="يتم التحديث تلقائياً كل 3 دقائق")
+
     except Exception as e:
-        print(f"خطأ أثناء فحص السيرفر: {e}")
+        # في حال كان السيرفر طافي أو لم يستجب
+        print(f"السيرفر لم يستجب: {e}")
+        embed.color = discord.Color.red()
+        embed.add_field(name="🔹 حالة السيرفر", value="```🔴 مغلق أو تحت الصيانة```", inline=False)
+        embed.set_footer(text="يتم التحديث تلقائياً كل 3 دقائق")
+
+    # إرسال أو تعديل الرسالة لمنع التكرار
+    try:
+        if message_id is None:
+            msg = await channel.send(embed=embed)
+            message_id = msg.id
+        else:
+            try:
+                msg = await channel.fetch_message(message_id)
+                await msg.edit(embed=embed)
+            except discord.NotFound:
+                msg = await channel.send(embed=embed)
+                message_id = msg.id
+    except Exception as ex:
+        print(f"خطأ في إرسال الرسالة إلى الديسكورد: {ex}")
 
 bot.run(TOKEN)
