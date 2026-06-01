@@ -4,7 +4,7 @@ from discord.ext import tasks, commands
 import requests
 
 # قراءة توكن الديسكورد بأمان
-TOKEN = os.getenv('DISCORD_TOKEN')
+TOKEN = os.getenv('MTUxMDQ1NTU0ODc1NDI2NDE1NQ.GRX_1A.lwR7hXU1FRs9E93aGXpS0nAb10EfiCJTlZfMr0')
 
 # ضع الـ IP الخاص بسيرفرك هنا بين الفاصلتين
 SERVER_IP = "31.214.216.41:5560"
