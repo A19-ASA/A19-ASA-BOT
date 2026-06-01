@@ -1,83 +1,33 @@
-import os
-import asyncio
 import discord
-from discord.ext import tasks
-import a2s
-
-# جلب المتغيرات من Railway
-TOKEN = os.getenv('MTUxMDQ1NTU0ODc1NDI2NDE1NQ.GRX_1A.lwR7hXU1FRs9E93aGXpS0nAb10EfiCJTlZfMr0')
-SERVER_IP = os.getenv('SERVER_IP') or os.getenv('19258802')
-SERVER_PORT = os.getenv('21')
-CHANNEL_ID = os.getenv('1506832226367701163')
-
-if not TOKEN:
-    raise ValueError("خطأ: لم يتم العثور على DISCORD_TOKEN في المتغيرات")
+import os
+import requests
+from discord.ext import commands, tasks
 
 intents = discord.Intents.default()
-bot = discord.Client(intents=intents)
-message_id = None
+intents.message_content = True
+bot = commands.Bot(command_prefix="!", intents=intents)
+
+# هنا حطينا رقم باتل ميتريكس فقط
+SERVER_ID = '39089534' 
+URL = f"https://api.battlemetrics.com/servers/{SERVER_ID}"
 
 @bot.event
 async def on_ready():
-    print(f'🟢 تم تشغيل بوت {bot.user.name} بنجاح والنظام مستقر!')
-    if not update_server_status.is_running():
-        update_server_status.start()
+    print('Bot is online and ready!')
+    update_status.start()
 
-@tasks.loop(minutes=3)
-async def update_server_status():
-    global message_id
-    
-    # التأكد من وجود البيانات لمنع الكراش
-    if not CHANNEL_ID or not SERVER_IP or not SERVER_PORT:
-        print("⚠️ المتغيرات ناقصة في Railway، يرجى التأكد منها.")
-        return
-        
-    channel = bot.get_channel(int(CHANNEL_ID))
-    if not channel:
-        print("⚠️ لم يتم العثور على القناة في الديسكورد.")
-        return
-
-    # تجهيز رسالة الـ Embed المنسقة
-    embed = discord.Embed(
-        title="A19 ASA Server Status",
-        description="حالة السيرفر المباشرة وتفاصيل التشغيل",
-        color=discord.Color.green()
-    )
-
+@tasks.loop(minutes=2)
+async def update_status():
     try:
-        # فحص السيرفر بشكل غير متزامن (Async) مستحيل يعلق البوت
-        info = await a2s.ainfo((SERVER_IP, int(SERVER_PORT)), timeout=5)
-        
-        players = info.players
-        max_players = info.max_players
-        server_name = info.server_name
-
-        embed.add_field(name="🔹 حالة السيرفر", value="```🟢 متصل```", inline=False)
-        embed.add_field(name="👥 عدد اللاعبين", value=f"``` {players} / {max_players} ```", inline=False)
-        embed.add_field(name="📍 اسم السيرفر", value=f"``` {server_name} ```", inline=False)
-        
+        response = requests.get(URL)
+        data = response.json()
+        # جلب البيانات من المسار الصحيح
+        attrs = data['data']['attributes']
+        players = attrs['players']
+        max_players = attrs['maxPlayers']
+        status_text = f"{players}/{max_players} لاعب"
+        await bot.change_presence(activity=discord.Game(name=status_text))
     except Exception as e:
-        # نظام الحماية: لو السيرفر طافي أو ما رد، البوت يكمل شغل وما يكرش
-        print(f"📡 السيرفر لا يستجيب حالياً (ربما طافي أو يعيد التشغيل): {e}")
-        embed.color = discord.Color.red()
-        embed.add_field(name="🔹 حالة السيرفر", value="```🔴 مغلق أو تحت الصيانة```", inline=False)
-        embed.add_field(name="⚠️ تنبيه", value="```لا يمكن الاتصال بخادم اللعبة حالياً```", inline=False)
+        print(f"Error updating status: {e}")
 
-    embed.set_footer(text="يتم التحديث تلقائياً كل 3 دقائق")
-
-    # إرسال أو تعديل الرسالة الثابتة لمنع التكرار
-    try:
-        if message_id is None:
-            msg = await channel.send(embed=embed)
-            message_id = msg.id
-        else:
-            try:
-                msg = await channel.fetch_message(message_id)
-                await msg.edit(embed=embed)
-            except discord.NotFound:
-                msg = await channel.send(embed=embed)
-                message_id = msg.id
-    except Exception as ex:
-        print(f"❌ خطأ أثناء التعامل مع رسائل الديسكورد: {ex}")
-
-bot.run(TOKEN)
+bot.run(os.getenv('DISCORD_TOKEN'))
