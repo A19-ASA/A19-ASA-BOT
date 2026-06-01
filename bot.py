@@ -3,13 +3,13 @@ import discord
 from discord.ext import tasks
 import requests
 
-# جلب الإعدادات من متغيرات بيئة السيرفر
+# جلب الإعدادات من متغيرات بيئة السيرفر في Railway
 TOKEN = os.getenv('DISCORD_TOKEN')
 SERVER_IP = os.getenv('SERVER_IP')
 SERVER_PORT = os.getenv('SERVER_PORT')
 CHANNEL_ID = os.getenv('CHANNEL_ID')
 
-# للتأكد من أن التوكن تم قراءته بنجاح ولم يأت فارغاً
+# التأكد من أن التوكن غير فارغ لمنع الكراش
 if not TOKEN:
     raise ValueError("خطأ: لم يتم العثور على DISCORD_TOKEN في متغيرات Railway!")
 
@@ -34,14 +34,14 @@ async def update_server_status():
         print("خطأ: لم يتم العثور على القناة المحددة بالديسكورد.")
         return
 
-    # إنشاء الـ Embed الاحترافي المماثل لطلبك
+    # إنشاء الـ Embed الاحترافي المنسق
     embed = discord.Embed(
         title="A19 ASA Server Status",
         description="حالة السيرفر المباشرة وتفاصيل التشغيل",
         color=discord.Color.green()
     )
 
-    # استخدام رابط استعلام بديل وآمن يتخطى فحص الـ SSL لحل مشكلة الـ Certificate
+    # رابط استعلام يتخطى مشاكل الـ SSL والشهادات القديمة
     url = f"https://api.gamedig.org/query?type=arksa&host={SERVER_IP}&port={SERVER_PORT}"
     
     try:
@@ -68,7 +68,7 @@ async def update_server_status():
         embed.add_field(name="🔹 حالة السيرفر", value="```🔴 السيرفر لا يستجيب حالياً```", inline=False)
         embed.set_footer(text="يتم التحديث تلقائياً كل 3 دقائق")
 
-    # إرسال الرسالة أو تعديلها لمنع التكرار
+    # إرسال الرسالة أو تعديلها لمنع التكرار في الروم
     try:
         if message_id is None:
             msg = await channel.send(embed=embed)
