@@ -9,7 +9,7 @@ bot = commands.Bot(command_prefix="!", intents=intents)
 
 # هنا حطينا رقم باتل ميتريكس فقط
 SERVER_ID = '39089534' 
-URL = f"https://api.battlemetrics.com/servers/{SERVER_ID}"
+URL = f"https://api.battlemetrics.com/servers/{19258802}"
 
 @bot.event
 async def on_ready():
