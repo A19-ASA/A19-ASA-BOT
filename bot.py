@@ -1,33 +1,42 @@
-import discord
 import os
+import discord
+from discord.ext import tasks, commands
 import requests
-from discord.ext import commands, tasks
+
+# قراءة توكن الديسكورد بأمان
+TOKEN = os.getenv('DISCORD_TOKEN')
+
+# ضع الـ IP الخاص بسيرفرك هنا بين الفاصلتين
+SERVER_IP = "ضع_الآيبي_هنا"
+# ضع بورت الاستعلام (Query Port) الخاص بالسيرفر هنا (يكون غالباً رقم مكون من 5 أرقام)
+SERVER_PORT = "ضع_البورت_هنا" 
 
 intents = discord.Intents.default()
 intents.message_content = True
 bot = commands.Bot(command_prefix="!", intents=intents)
 
-# هنا حطينا رقم باتل ميتريكس فقط
-SERVER_ID = '39089534' 
-URL = f"https://api.battlemetrics.com/servers/{19258802}"
-
 @bot.event
 async def on_ready():
-    print('Bot is online and ready!')
+    print(f'تم تشغيل بوت A19 ASA بنجاح!')
     update_status.start()
 
-@tasks.loop(minutes=2)
+@tasks.loop(minutes=3) # يتأكد من حالة السيرفر كل 3 دقائق
 async def update_status():
+    # استخدام موقع خارجي مجاني ومفتوح لفحص سيرفرات ارك عن طريق الـ IP دون الحاجة لتوكن
+    url = f"https://api.gamedig.github.io/v1/query?type=arksa&host={SERVER_IP}&port={SERVER_PORT}"
+    
     try:
-        response = requests.get(URL)
-        data = response.json()
-        # جلب البيانات من المسار الصحيح
-        attrs = data['data']['attributes']
-        players = attrs['players']
-        max_players = attrs['maxPlayers']
-        status_text = f"{players}/{max_players} لاعب"
-        await bot.change_presence(activity=discord.Game(name=status_text))
+        response = requests.get(url).json()
+        if 'error' not in response:
+            players = len(response.get('players', []))
+            max_players = response.get('maxplayers', 50)
+            
+            # تحديث حالة البوت الجانبية في الديسكورد باللاعبين
+            await bot.change_presence(activity=discord.Game(name=f"اللاعبين: {players}/{max_players}"))
+            print(f"السيرفر متصل | اللاعبين: {players}/{max_players}")
+        else:
+            await bot.change_presence(activity=discord.Game(name="السيرفر مغلق 🔴"))
     except Exception as e:
-        print(f"Error updating status: {e}")
+        print(f"خطأ أثناء فحص السيرفر: {e}")
 
-bot.run(os.getenv('DISCORD_TOKEN'))
+bot.run(TOKEN)
