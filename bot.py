@@ -14,7 +14,7 @@ message_id = None
 
 @bot.event
 async def on_ready():
-    print(f"Bot connected successfully as: {bot.user.name}")
+    print(f"Bot is ready: {bot.user.name}")
     if not update_server_status.is_running():
         update_server_status.start()
 
@@ -30,7 +30,6 @@ async def update_server_status():
         if not channel: return
     except: return
 
-    # عنوان الروم بالديسكورد
     embed = discord.Embed(
         title="A19 ASA Server Status",
         description="حالة السيرفر المباشرة وتفاصيل التشغيل",
@@ -54,11 +53,11 @@ async def update_server_status():
     except Exception as e:
         print(f"Fetch error: {e}")
 
-    # هنا الحقول آمنة 100% ومستحيل تكرش البوت لأن علامات الاقتباس منضبطة
-    embed.add_field(name="🔹 حالة السيرفر", value="```\n🟢 متصل وجاهز للعب\n
+    # كتابة القيم بدون دمج نصوص عربية داخل علامات الاقتباس البرمجية الحساسة لضمان الاستقرار
+    embed.add_field(name="Server Status", value="```\nONLINE\n
 ```", inline=False)
-    embed.add_field(name="👥 عدد اللاعبين", value=f"```\n {players} / {max_players} \n```", inline=False)
-    embed.add_field(name="📍 اسم السيرفر", value=f"```\n {server_name} \n
+    embed.add_field(name="Players", value=f"```\n {players} / {max_players} \n```", inline=False)
+    embed.add_field(name="Server Name", value=f"```\n {server_name} \n
 ```", inline=False)
     embed.set_footer(text="يتم التحديث تلقائياً كل 3 دقائق")
 
@@ -74,7 +73,7 @@ async def update_server_status():
                 msg = await channel.send(embed=embed)
                 message_id = msg.id
     except Exception as ex:
-        print(f"Discord send error: {ex}")
+        print(f"Discord error: {ex}")
 
 try:
     bot.run(TOKEN)
