@@ -14,7 +14,7 @@ message_id = None
 
 @bot.event
 async def on_ready():
-    print(f"Bot is ready: {bot.user.name}")
+    print("Bot is running properly.")
     if not update_server_status.is_running():
         update_server_status.start()
 
@@ -32,11 +32,11 @@ async def update_server_status():
 
     embed = discord.Embed(
         title="A19 ASA Server Status",
-        description="حالة السيرفر المباشرة وتفاصيل التشغيل",
+        description="Live server details and stats",
         color=discord.Color.green()
     )
 
-    server_name = "A19 PRIMAL NEMESIS [Arab]"
+    server_name = "A19 PRIMAL NEMESIS"
     players = 0
     max_players = 20
 
@@ -53,13 +53,12 @@ async def update_server_status():
     except Exception as e:
         print(f"Fetch error: {e}")
 
-    # كتابة القيم بدون دمج نصوص عربية داخل علامات الاقتباس البرمجية الحساسة لضمان الاستقرار
     embed.add_field(name="Server Status", value="```\nONLINE\n
 ```", inline=False)
-    embed.add_field(name="Players", value=f"```\n {players} / {max_players} \n```", inline=False)
+    embed.add_field(name="Players Online", value=f"```\n {players} / {max_players} \n```", inline=False)
     embed.add_field(name="Server Name", value=f"```\n {server_name} \n
 ```", inline=False)
-    embed.set_footer(text="يتم التحديث تلقائياً كل 3 دقائق")
+    embed.set_footer(text="Auto updated every 3 minutes")
 
     try:
         if message_id is None:
