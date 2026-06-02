@@ -53,8 +53,11 @@ async def update_server_status():
     except Exception as e:
         print(f"Fetch error: {e}")
 
-    embed.add_field(name="Server Status", value="```\nONLINE\n
-```", inline=False)
+embed.add_field(
+    name="Server Status",
+    value="🟢 ONLINE",
+    inline=False
+)
     embed.add_field(name="Players Online", value=f"```\n {players} / {max_players} \n```", inline=False)
     embed.add_field(name="Server Name", value=f"```\n {server_name} \n
 ```", inline=False)
